@@ -5,17 +5,32 @@ import numpy as np
 # MPI
 protoFile = "mpi/pose_deploy_linevec_faster_4_stages.prototxt"
 weightsFile = "mpi/pose_iter_160000.caffemodel"
-nPoints = 15
-POSE_PAIRS = [[0,1], [1,2], [2,3], [3,4], [1,5], [5,6], [6,7], [1,14], [14,8], [8,9], [9,10], [14,11], [11,12], [12,13] ]
+# nPoints = 15
+nPoints = 8
+# POSE_PAIRS = [[0,1], [1,2], [2,3], [3,4], [1,5], [5,6], [6,7], [1,14], [14,8], [8,9], [9,10], [14,11], [11,12], [12,13] ]
+POSE_PAIRS = [[0,1], [1,2], [2,3], [3,4], [1,5], [5,6], [6,7] ]
 
 
 inWidth = 368
 inHeight = 368
 threshold = 0.1
 
-cap = cv2.VideoCapture(0)
-hasFrame, frame = cap.read()
 
+# Get 
+key = input("Please enter d for demo and l for live feed: ") 
+print (key)
+if key == 'd':
+	vid = input("editOfGood.mp4(1) or 1rep.mp4(2): ")
+	if vid == 1:
+		input_source = "editOfGood.mp4"
+	else:
+		input_source = "1rep.mp4"
+	cap = cv2.VideoCapture(input_source)
+else:
+	cap = cv2.VideoCapture(0)
+
+
+hasFrame, frame = cap.read()
 vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame.shape[1],frame.shape[0]))
 
 net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
@@ -52,13 +67,20 @@ while cv2.waitKey(1) < 0:
 		y = (frameHeight * point[1]) / H
 
 		if prob > threshold : 
+			# Change back to framecopy to get rid of nums
 			cv2.circle(frameCopy, (int(x), int(y)), 8, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
 			cv2.putText(frameCopy, "{}".format(i), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, lineType=cv2.LINE_AA)
 
 			# Add the point to the list if the probability is greater than the threshold
 			points.append((int(x), int(y)))
+
+			if i == 0:
+				print (int(x), int(y), i)
+	
+
 		else :
 			points.append(None)
+
 
 	# Draw Skeleton
 	for pair in POSE_PAIRS:
@@ -78,3 +100,4 @@ while cv2.waitKey(1) < 0:
 	vid_writer.write(frame)
 
 	vid_writer.release()
+	# print (x, y)

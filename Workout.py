@@ -5,6 +5,9 @@ import time
 import numpy as np
 from tkinter import * # note that module name has changed from Tkinter in Python 2 to tkinter in Python 3
 from tkinter import messagebox
+from tkinter import filedialog
+from moviepy.editor import *
+
 
 # MPI
 protoFile = "mpi/pose_deploy_linevec_faster_4_stages.prototxt"
@@ -35,46 +38,59 @@ done = False
 x_cor = [-1] * 8
 y_cor = [-1] * 8
 
+# global yeet
 # Menu
 top = Tk()
 top.geometry("400x500")
+video = 1
+# yeet = False
 
-def hello():
-	cap = cv2.VideoCapture(0)
 
-b = Button(top, text = "Live Stream", command = hello)
+
+# def play(video):
+# 	videoA = VideoFileClip(video)
+# 	# Make the text. Many more options are available.
+# 	txt_clip = ( TextClip("",fontsize=70,color='white')
+# 	             .set_position('center')
+# 	             .set_duration(10) )
+# 	result = CompositeVideoClip([videoA, txt_clip])
+# 	result.write_videofile("myHolidays_edited.webm",fps=25)
+
+def live():
+	global video
+	video = 0
+
+def recorded():
+	global video
+	filename = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("mp4 files","*.mp4"),("all files","*.*")))
+	video = filename
+
+# def demo():
+# 	# global video
+# 	filename = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("mp4 files","*.mp4"),("all files","*.*")))
+# 	play(filename)
+# 	yeet = True
+
+
+
+b = Button(top, text = "Live Stream", command = live)
 b.place(x = 75, y = 250)
-c = Menubutton(top, text = "Recorded", relief = RAISED)
+c = Button(top, text = "Recorded", relief = RAISED, command=recorded)
 c.place(x = 275, y = 250)
-c.menu = Menu(c, tearoff = 0)
-c["menu"] = c.menu
+# d = Button(top, text = "Demo", command = demo)
+# d.place(x = 170, y = 350)
 
-mp4_1 = IntVar()
-mp4_2 = IntVar()
-mp4_3 = IntVar()
 
-c.menu.add_checkbutton ( label = "mp4_1",
-                          variable = mp4_1 )
-c.menu.add_checkbutton ( label = "mp4_2",
-                          variable = mp4_2 )
-c.menu.add_checkbutton ( label = "mp4_3",
-                          variable = mp4_3 )
-
-if (mp4_1):
-	cap = cv2.VideoCapture("editOfGood.mp4")
-elif(mp4_2):
-	cap = cv2.VideoCapture("rep.mp4")
-else:
-	cap = cv2.VideoCapture("mix.mp4")
 
 var = StringVar()
-w = Label(top, textvariable = var, pady = 50, font = ("Helvetica", 16, "bold"))
-var.set("Welcome to Spotter!")
+w = Label(top, textvariable = var, pady = 50, font = ("Helvetica", 30, "bold"))
+var.set("SpotMe!")
 w.pack()
 top.mainloop()
 
 
 # Frame
+cap = cv2.VideoCapture(video)
 hasFrame, frame = cap.read()
 vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame.shape[1],frame.shape[0]))
 frame_counter = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -193,3 +209,6 @@ vid_writer.release()
 cv2.destroyAllWindows()
 
 print ("done")
+
+
+

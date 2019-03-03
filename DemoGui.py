@@ -30,3 +30,6 @@ w = Label(top, textvariable = var, pady = 50, font = ("Helvetica", 16, "bold"))
 var.set("Welcome to Spotter!")
 w.pack()
 top.mainloop()
+
+
+	# root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("mp4 files","*.mp4"),("all files","*.*")))

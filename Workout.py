@@ -1,7 +1,10 @@
 import cv2
 import time
 import numpy as np
-import imageio
+import imutils
+from imutils.video import WebcamVideoStream
+
+# import imageio
 
 # MPI
 protoFile = "mpi/pose_deploy_linevec_faster_4_stages.prototxt"
@@ -34,7 +37,7 @@ x_cor = [-1] * 8
 y_cor = [-1] * 8
 
 # Menu
-key = input("Please enter d for demo and l for live feed: ") 
+key = input("Please enter d for demo and l for live feed: ")
 print (key)
 if key == 'd':
 	vid = input("editOfGood.mp4(1) or 1rep.mp4(2) or mix.mp4(3): ")
@@ -47,13 +50,15 @@ if key == 'd':
 	cap = cv2.VideoCapture(input_source)
 	# clip = VideoFileClip(input_source)
 else:
-	cap = cv2.VideoCapture(0)
+	# cap = cv2.VideoCapture(0)
+	cap = WebcamVideoStream(src=0).start()
+
 
 # Frame
-hasFrame, frame = cap.read()
+frame = cap.read()
 vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame.shape[1],frame.shape[0]))
 # out = cv2.VideoWriter('out.avi',fourcc, 20.0, (640,480))
-frame_counter = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+# frame_counter = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
 
 
@@ -62,14 +67,14 @@ net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
 # Main loop
 while cv2.waitKey(1) < 0 and done == False:
 	# Output to consul
-	print(frame_counter)
+	# print(frame_counter)
 
 	t = time.time()
-	hasFrame, frame = cap.read()
+	frame = cap.read()
 	frameCopy = np.copy(frame)
-	if not hasFrame:
-		cv2.waitKey()
-		break
+	# if not hasFrame:
+	# 	cv2.waitKey()
+	# 	break
 
 	frameWidth = frame.shape[1]
 	frameHeight = frame.shape[0]
@@ -89,12 +94,12 @@ while cv2.waitKey(1) < 0 and done == False:
 
 		# Find global maxima of the probMap.
 		minVal, prob, minLoc, point = cv2.minMaxLoc(probMap)
-		
+
 		# Scale the point to fit on the original image
 		x = (frameWidth * point[0]) / W
 		y = (frameHeight * point[1]) / H
 
-		if prob > threshold : 
+		if prob > threshold :
 			# Change back to framecopy to get rid of nums
 			cv2.circle(frameCopy, (int(x), int(y)), 8, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
 			cv2.putText(frameCopy, "{}".format(i), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, lineType=cv2.LINE_AA)
@@ -111,7 +116,7 @@ while cv2.waitKey(1) < 0 and done == False:
 			y_cor[i] = int(y)
 
 			# print (y_cor[i], i)
-	
+
 
 		else :
 			points.append(None)
@@ -148,7 +153,7 @@ while cv2.waitKey(1) < 0 and done == False:
 		count_bottom = True
 		count_top = False
 
-	
+
 
 	# Output to user
 	# Check if it is a post workout or live
@@ -156,20 +161,20 @@ while cv2.waitKey(1) < 0 and done == False:
 	if arms_arent_even == True:
 		cv2.putText(frame, "Make sure hands and arms are even(dif): "+str(abs(y_cor[7]-y_cor[4])), (50, 200), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_even +=1
-	cv2.putText(frame, "Arms aren't even: "+str(errors_even), (50, 40), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)		
+	cv2.putText(frame, "Arms aren't even: "+str(errors_even), (50, 40), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
 	if fix_right_arm == True:
 		cv2.putText(frame, "Right forearm is not straight(dif): "+str(abs(x_cor[4] - x_cor[3])), (50, 220), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_right_arm +=1
-	cv2.putText(frame, "Fix right forearm: "+str(errors_right_arm), (50, 60), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA) 
+	cv2.putText(frame, "Fix right forearm: "+str(errors_right_arm), (50, 60), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
 	if fix_left_arm == True:
 		cv2.putText(frame, "Left forearm is not straight(dif): "+str(abs(x_cor[7]-x_cor[6])), (50, 240), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_left_arm +=1
 	cv2.putText(frame, "Fix left forearm: "+str(errors_left_arm), (50, 80), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
-		
+
 	cv2.putText(frame, "Total errors: "+str(errors_left_arm+errors_even+errors_right_arm), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
 	cv2.putText(frame, "Reps: "+str(count_reps), (50, 140), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1, cv2.LINE_AA)
 	cv2.imshow('Output-Skeleton', frame)
-	
+
 	# Reset
 	x_cor = [-1] * 8
 	y_cor = [-1] * 8
@@ -179,14 +184,14 @@ while cv2.waitKey(1) < 0 and done == False:
 	# keep_head_still = False
 
 	# Decrease frame counter
-	frame_counter -= 1
-	if frame_counter == 1:
-		done = True
-	
+	# frame_counter -= 1
+	# if frame_counter == 1:
+	# 	done = True
+
 	vid_writer.write(frame)
 	# vid_writer.release()
 
-	
+
 
 # Output errors individually at end
 

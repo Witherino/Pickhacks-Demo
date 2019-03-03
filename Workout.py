@@ -1,7 +1,6 @@
 import cv2
 import time
 import numpy as np
-# import imageio
 
 # MPI
 protoFile = "mpi/pose_deploy_linevec_faster_4_stages.prototxt"
@@ -19,7 +18,6 @@ threshold = 0.1
 # Flags
 fix_right_arm = False
 fix_left_arm = False
-keep_head_still = False
 arms_arent_even = False
 count_reps = 0
 errors_right_arm = 0
@@ -45,17 +43,13 @@ if key == 'd':
 	else:
 		input_source = "mix.mp4"
 	cap = cv2.VideoCapture(input_source)
-	# clip = VideoFileClip(input_source)
 else:
 	cap = cv2.VideoCapture(0)
 
 # Frame
 hasFrame, frame = cap.read()
 vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame.shape[1],frame.shape[0]))
-# out = cv2.VideoWriter('out.avi',fourcc, 20.0, (640,480))
 frame_counter = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-
 
 net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
 
@@ -64,6 +58,7 @@ while cv2.waitKey(1) < 0 and done == False:
 	# Output to consul
 	print(frame_counter)
 
+	# Frame
 	t = time.time()
 	hasFrame, frame = cap.read()
 	frameCopy = np.copy(frame)
@@ -80,42 +75,29 @@ while cv2.waitKey(1) < 0 and done == False:
 
 	H = output.shape[2]
 	W = output.shape[3]
-	# Empty list to store the detected keypoints
+
+	# Store the detected keypoints
 	points = []
 
 	for i in range(nPoints):
-		# confidence map of corresponding body's part.
 		probMap = output[0, i, :, :]
-
-		# Find global maxima of the probMap.
 		minVal, prob, minLoc, point = cv2.minMaxLoc(probMap)
 		
-		# Scale the point to fit on the original image
+		# Scale 
 		x = (frameWidth * point[0]) / W
 		y = (frameHeight * point[1]) / H
 
 		if prob > threshold : 
-			# Change back to framecopy to get rid of nums
 			cv2.circle(frameCopy, (int(x), int(y)), 8, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
 			cv2.putText(frameCopy, "{}".format(i), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, lineType=cv2.LINE_AA)
 
-			# Add the point to the list if the probability is greater than the threshold
 			points.append((int(x), int(y)))
-
-			# # Check Form
-			# if i == :
-			# 	print (int(x), int(y), i)
 
 			# Update List
 			x_cor[i] = int(x)
 			y_cor[i] = int(y)
-
-			# print (y_cor[i], i)
-	
-
 		else :
 			points.append(None)
-
 
 	# Draw Skeleton
 	for pair in POSE_PAIRS:
@@ -127,19 +109,15 @@ while cv2.waitKey(1) < 0 and done == False:
 			cv2.circle(frame, points[partA], 8, (0, 0, 255), thickness=-1, lineType=cv2.FILLED)
 			cv2.circle(frame, points[partB], 8, (0, 0, 255), thickness=-1, lineType=cv2.FILLED)
 
-	# Check for form
-	# Check that hands are even: about 35 pixel diff
-	if abs(y_cor[7]-y_cor[4]) > 20:
+	# Check form
+	if abs(y_cor[7]-y_cor[4]) > 25:							# Check that hands are even: about 25 pixel diff
 		arms_arent_even = True
-	if abs(x_cor[4] - x_cor[3]) > 35:
+	if abs(x_cor[4] - x_cor[3]) > 35:						# Check right arm is straight: about 35 pixel diff
 		fix_right_arm = True
-		# print (abs(x_cor[4] - x_cor[3]))
-	if abs(x_cor[7]-x_cor[6] ) > 35:
+	if abs(x_cor[7]-x_cor[6] ) > 35:						# Check left arm is straight: about 35 pixel diff
 		fix_left_arm = True
-	if abs(y_cor[7]-y_cor[4] > 35):
-		keep_head_still = True
 
-	# at top
+	# count reps
 	if y_cor[7]-y_cor[0] <= -40 and count_bottom == True:
 		count_reps += 1
 		count_bottom = False
@@ -148,10 +126,7 @@ while cv2.waitKey(1) < 0 and done == False:
 		count_bottom = True
 		count_top = False
 
-	
-
 	# Output to user
-	# Check if it is a post workout or live
 	cv2.putText(frame, "Real time Suggestions: ", (50, 180), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 	if arms_arent_even == True:
 		cv2.putText(frame, "Make sure hands and arms are even(dif): "+str(abs(y_cor[7]-y_cor[4])), (50, 200), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
@@ -176,7 +151,6 @@ while cv2.waitKey(1) < 0 and done == False:
 	arms_arent_even = False
 	fix_left_arm = False
 	fix_right_arm = False
-	# keep_head_still = False
 
 	# Decrease frame counter
 	frame_counter -= 1
@@ -184,11 +158,7 @@ while cv2.waitKey(1) < 0 and done == False:
 		done = True
 	
 	vid_writer.write(frame)
-	# vid_writer.release()
 
-	
-
-# Output errors individually at end
 
 cap.release()
 vid_writer.release()

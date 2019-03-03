@@ -1,7 +1,7 @@
 import cv2
 import time
 import numpy as np
-import imageio
+# import imageio
 
 # MPI
 protoFile = "mpi/pose_deploy_linevec_faster_4_stages.prototxt"

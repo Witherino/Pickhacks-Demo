@@ -3,6 +3,7 @@ import time
 import numpy as np
 import imutils
 from imutils.video import WebcamVideoStream
+from imutils.video import FileVideoStream
 
 # import imageio
 
@@ -47,7 +48,9 @@ if key == 'd':
 		input_source = "1rep.mp4"
 	else:
 		input_source = "mix.mp4"
-	cap = cv2.VideoCapture(input_source)
+	# cap = cv2.VideoCapture(input_source)
+	cap = FileVideoStream(input_source).start()
+	time.sleep(1.0)
 	# clip = VideoFileClip(input_source)
 else:
 	# cap = cv2.VideoCapture(0)

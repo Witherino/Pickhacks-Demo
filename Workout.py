@@ -1,6 +1,7 @@
 import cv2
 import time
 import numpy as np
+import imageio
 
 # MPI
 protoFile = "mpi/pose_deploy_linevec_faster_4_stages.prototxt"
@@ -26,6 +27,7 @@ errors_left_arm = 0
 errors_even = 0
 count_top = False
 count_bottom = True
+done = False
 
 # List of cordinates
 x_cor = [-1] * 8
@@ -39,21 +41,29 @@ if key == 'd':
 	if vid == 1:
 		input_source = "editOfGood.mp4"
 	elif vid == 2:
-		input_source = "mix.mp4"
-	else:
 		input_source = "1rep.mp4"
+	else:
+		input_source = "mix.mp4"
 	cap = cv2.VideoCapture(input_source)
+	# clip = VideoFileClip(input_source)
 else:
 	cap = cv2.VideoCapture(0)
 
 # Frame
 hasFrame, frame = cap.read()
 vid_writer = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame.shape[1],frame.shape[0]))
+# out = cv2.VideoWriter('out.avi',fourcc, 20.0, (640,480))
+frame_counter = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+
 
 net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
 
 # Main loop
-while cv2.waitKey(1) < 0:
+while cv2.waitKey(1) < 0 and done == False:
+	# Output to consul
+	print(frame_counter)
+
 	t = time.time()
 	hasFrame, frame = cap.read()
 	frameCopy = np.copy(frame)
@@ -142,22 +152,22 @@ while cv2.waitKey(1) < 0:
 
 	# Output to user
 	# Check if it is a post workout or live
+	cv2.putText(frame, "Real time Suggestions: ", (50, 180), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 	if arms_arent_even == True:
-		cv2.putText(frame, "Arms aren't even: ", (50, 10), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
-		# cv2.putText(frame, "Arms aren't even: "+str(abs(y_cor[7]-y_cor[4])), (50, 10), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
+		cv2.putText(frame, "Make sure hands and arms are even(dif): "+str(abs(y_cor[7]-y_cor[4])), (50, 200), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_even +=1
+	cv2.putText(frame, "Arms aren't even: "+str(errors_even), (50, 40), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)		
 	if fix_right_arm == True:
-		cv2.putText(frame, "Fix right forearm: ", (50, 30), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA) 
-		# cv2.putText(frame, "Fix right forearm: "+str(abs(x_cor[4] - x_cor[3])), (50, 30), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
+		cv2.putText(frame, "Right forearm is not straight(dif): "+str(abs(x_cor[4] - x_cor[3])), (50, 220), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_right_arm +=1
+	cv2.putText(frame, "Fix right forearm: "+str(errors_right_arm), (50, 60), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA) 
 	if fix_left_arm == True:
-		cv2.putText(frame, "Fix left forearm: ", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
-		# cv2.putText(frame, "Fix left forearm: "+str(abs(x_cor[7]-x_cor[6])), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
+		cv2.putText(frame, "Left forearm is not straight(dif): "+str(abs(x_cor[7]-x_cor[6])), (50, 240), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_left_arm +=1
-	# if keep_head_still == True:
-	# 	cv2.putText(frame, "Keep head still: ", (50, 90), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
-	cv2.putText(frame, "Total errors: "+str(errors_left_arm+errors_even+errors_right_arm), (50, 70), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
-	cv2.putText(frame, "Reps: "+str(count_reps), (50, 110), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 50, 100), 1, cv2.LINE_AA)
+	cv2.putText(frame, "Fix left forearm: "+str(errors_left_arm), (50, 80), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
+		
+	cv2.putText(frame, "Total errors: "+str(errors_left_arm+errors_even+errors_right_arm), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
+	cv2.putText(frame, "Reps: "+str(count_reps), (50, 140), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1, cv2.LINE_AA)
 	cv2.imshow('Output-Skeleton', frame)
 	
 	# Reset
@@ -168,12 +178,20 @@ while cv2.waitKey(1) < 0:
 	fix_right_arm = False
 	# keep_head_still = False
 
+	# Decrease frame counter
+	frame_counter -= 1
+	if frame_counter == 1:
+		done = True
+	
 	vid_writer.write(frame)
-	vid_writer.release()
+	# vid_writer.release()
+
+	
 
 # Output errors individually at end
-cv2.putText(frame, "Arms aren't even: "+str(errors_even), (50, 10), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
-cv2.putText(frame, "Fix right forearm: "+str(errors_right_arm), (50, 30), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
-cv2.putText(frame, "Fix left forearm: "+str(errors_left_arm), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
+
+cap.release()
+vid_writer.release()
+cv2.destroyAllWindows()
 
 print ("done")

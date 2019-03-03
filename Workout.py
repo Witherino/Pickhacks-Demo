@@ -1,6 +1,10 @@
+#!/usr/bin/python3
+
 import cv2
 import time
 import numpy as np
+from tkinter import * # note that module name has changed from Tkinter in Python 2 to tkinter in Python 3
+from tkinter import messagebox
 
 # MPI
 protoFile = "mpi/pose_deploy_linevec_faster_4_stages.prototxt"
@@ -32,19 +36,43 @@ x_cor = [-1] * 8
 y_cor = [-1] * 8
 
 # Menu
-key = input("Please enter d for demo and l for live feed: ") 
-print (key)
-if key == 'd':
-	vid = input("editOfGood.mp4(1) or 1rep.mp4(2) or mix.mp4(3): ")
-	if vid == 1:
-		input_source = "editOfGood.mp4"
-	elif vid == 2:
-		input_source = "1rep.mp4"
-	else:
-		input_source = "mix.mp4"
-	cap = cv2.VideoCapture(input_source)
-else:
+top = Tk()
+top.geometry("400x500")
+
+def hello():
 	cap = cv2.VideoCapture(0)
+
+b = Button(top, text = "Live Stream", command = hello)
+b.place(x = 75, y = 250)
+c = Menubutton(top, text = "Recorded", relief = RAISED)
+c.place(x = 275, y = 250)
+c.menu = Menu(c, tearoff = 0)
+c["menu"] = c.menu
+
+mp4_1 = IntVar()
+mp4_2 = IntVar()
+mp4_3 = IntVar()
+
+c.menu.add_checkbutton ( label = "mp4_1",
+                          variable = mp4_1 )
+c.menu.add_checkbutton ( label = "mp4_2",
+                          variable = mp4_2 )
+c.menu.add_checkbutton ( label = "mp4_3",
+                          variable = mp4_3 )
+
+if (mp4_1):
+	cap = cv2.VideoCapture("editOfGood.mp4")
+elif(mp4_2):
+	cap = cv2.VideoCapture("rep.mp4")
+else:
+	cap = cv2.VideoCapture("mix.mp4")
+
+var = StringVar()
+w = Label(top, textvariable = var, pady = 50, font = ("Helvetica", 16, "bold"))
+var.set("Welcome to Spotter!")
+w.pack()
+top.mainloop()
+
 
 # Frame
 hasFrame, frame = cap.read()
@@ -82,12 +110,12 @@ while cv2.waitKey(1) < 0 and done == False:
 	for i in range(nPoints):
 		probMap = output[0, i, :, :]
 		minVal, prob, minLoc, point = cv2.minMaxLoc(probMap)
-		
-		# Scale 
+
+		# Scale
 		x = (frameWidth * point[0]) / W
 		y = (frameHeight * point[1]) / H
 
-		if prob > threshold : 
+		if prob > threshold :
 			cv2.circle(frameCopy, (int(x), int(y)), 8, (0, 255, 255), thickness=-1, lineType=cv2.FILLED)
 			cv2.putText(frameCopy, "{}".format(i), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, lineType=cv2.LINE_AA)
 
@@ -131,20 +159,20 @@ while cv2.waitKey(1) < 0 and done == False:
 	if arms_arent_even == True:
 		cv2.putText(frame, "Make sure hands and arms are even(dif): "+str(abs(y_cor[7]-y_cor[4])), (50, 200), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_even +=1
-	cv2.putText(frame, "Arms aren't even: "+str(errors_even), (50, 40), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)		
+	cv2.putText(frame, "Arms aren't even: "+str(errors_even), (50, 40), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
 	if fix_right_arm == True:
 		cv2.putText(frame, "Right forearm is not straight(dif): "+str(abs(x_cor[4] - x_cor[3])), (50, 220), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_right_arm +=1
-	cv2.putText(frame, "Fix right forearm: "+str(errors_right_arm), (50, 60), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA) 
+	cv2.putText(frame, "Fix right forearm: "+str(errors_right_arm), (50, 60), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
 	if fix_left_arm == True:
 		cv2.putText(frame, "Left forearm is not straight(dif): "+str(abs(x_cor[7]-x_cor[6])), (50, 240), cv2.FONT_HERSHEY_SIMPLEX, .3, (255, 50, 0), 1, cv2.LINE_AA)
 		errors_left_arm +=1
 	cv2.putText(frame, "Fix left forearm: "+str(errors_left_arm), (50, 80), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
-		
+
 	cv2.putText(frame, "Total errors: "+str(errors_left_arm+errors_even+errors_right_arm), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, .3, (0, 0, 0), 1, cv2.LINE_AA)
 	cv2.putText(frame, "Reps: "+str(count_reps), (50, 140), cv2.FONT_HERSHEY_SIMPLEX, .5, (0, 0, 255), 1, cv2.LINE_AA)
 	cv2.imshow('Output-Skeleton', frame)
-	
+
 	# Reset
 	x_cor = [-1] * 8
 	y_cor = [-1] * 8
@@ -156,7 +184,7 @@ while cv2.waitKey(1) < 0 and done == False:
 	frame_counter -= 1
 	if frame_counter == 1:
 		done = True
-	
+
 	vid_writer.write(frame)
 
 
